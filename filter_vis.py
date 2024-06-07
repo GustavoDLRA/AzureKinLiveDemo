@@ -121,29 +121,33 @@ def main():
             fused_mask = cv2.bitwise_and(filtered_color_mask, depth_filtered_mask)
 
             num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(fused_mask, 4, cv2.CV_32S)
-            areas = stats[1:, cv2.CC_STAT_AREA]
-            max_label = np.argmax(areas) + 1
-            largest_component = np.zeros_like(labels, dtype=np.uint8)
-            largest_component[labels == max_label] = 255
+            
+            if len(stats) > 1:
+                areas = stats[1:, cv2.CC_STAT_AREA]
+                max_label = np.argmax(areas) + 1
+                largest_component = np.zeros_like(labels, dtype=np.uint8)
+                largest_component[labels == max_label] = 255
 
-            result_color = cv2.bitwise_and(capture.color, capture.color, mask=largest_component)
-            result_depth = cv2.bitwise_and(capture.transformed_depth, capture.transformed_depth, mask=largest_component)
+                result_color = cv2.bitwise_and(capture.color, capture.color, mask=largest_component)
+                result_depth = cv2.bitwise_and(capture.transformed_depth, capture.transformed_depth, mask=largest_component)
 
-            centroid = tuple(int(c) for c in centroids[max_label])
-            result_color_with_mark = cv2.circle(result_color, centroid, 10, (0, 255, 0), -1)
-            capture_color_with_mark = capture.color.copy()
-            cv2.circle(capture_color_with_mark, centroid, 10, (0, 255, 0), -1)
+                centroid = tuple(int(c) for c in centroids[max_label])
+                result_color_with_mark = cv2.circle(result_color, centroid, 10, (0, 255, 0), -1)
+                capture_color_with_mark = capture.color.copy()
+                cv2.circle(capture_color_with_mark, centroid, 10, (0, 255, 0), -1)
 
-            points = get_point_cloud_vectorized(result_depth, intrinsic_matrix=intrinsic_matrix)
-            pcd.points = o3d.utility.Vector3dVector(points)
+                points = get_point_cloud_vectorized(result_depth, intrinsic_matrix=intrinsic_matrix)
+                pcd.points = o3d.utility.Vector3dVector(points)
 
-            pcd.transform(transformation_matrix)
-            vis.add_geometry(pcd)
-            vis.update_geometry(pcd)
-            vis.poll_events()
-            vis.update_renderer()
+                pcd.transform(transformation_matrix)
+                vis.add_geometry(pcd)
+                vis.update_geometry(pcd)
+                vis.poll_events()
+                vis.update_renderer()
 
-            cv2.imshow("Original image with centroid", capture_color_with_mark)
+                cv2.imshow("Original image with centroid", capture_color_with_mark)
+            else:
+                cv2.imshow("Original image with centroid", capture.color)
 
             key = cv2.waitKey(10)
             if key != -1:
@@ -155,4 +159,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
